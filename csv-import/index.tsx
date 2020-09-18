@@ -3,6 +3,13 @@ import ReactDOM from "react-dom"
 import papaparse from "papaparse"
 import { canonize, Quad } from "rdf-canonize"
 import jsonld from "jsonld"
+import {
+  BrowserRouter as Router,
+  Route,
+  Link,
+  RouteComponentProps
+} from "react-router-dom";
+import queryString from 'query-string';
 
 import "apg/context.jsonld"
 const contextUrl = "lib/context.jsonld"
@@ -14,11 +21,13 @@ const tabs = [".tsv", "text/tsv", "text/tab-separated-values"]
 const commas = [".csv", "text/csv"]
 const accept = tabs.concat(commas).join(",")
 
+
 type ObjectResult = { [key: string]: string }
 type ArrayResult = string[]
 type Result =
 	| papaparse.ParseResult<ObjectResult>
 	| papaparse.ParseResult<ArrayResult>
+type TParams =  { id: string }
 
 function parse(text: string, headers: boolean): Result {
 	const result = papaparse.parse(text, {
@@ -38,6 +47,7 @@ const propertyPatternURL =
 	"https://regexper.com/#" + encodeURIComponent(propertyPattern.source)
 
 const initialSubjectUri = "http://example.com/foo"
+
 function Index() {
 	const [table, setTable] = React.useState(null as Result | null)
 	const handleTableChange = React.useCallback(
@@ -49,6 +59,12 @@ function Index() {
 
 	const [focus, setFocus] = React.useState(NaN)
 	const [uris, setUris] = React.useState(null as string[] | null)
+	// console.log(match.params)
+
+	let url = window.location;
+	const urlObject = new URL(url.toString());
+	const id = urlObject.searchParams.get('id');
+	console.log(id)
 
 	return (
 		<React.Fragment>
@@ -75,17 +91,19 @@ function Step1(props: {
 	focus: number
 	onChange: (result: Result | null) => void
 }) {
-	const input = React.useRef(null as HTMLInputElement | null)
+	const input = React.useRef(null as HTMLFormElement | null)
 	const [text, setText] = React.useState(null as string | null)
-	const onFileChange = React.useCallback(
-		async (_: React.ChangeEvent<HTMLInputElement>) => {
-			if (input.current !== null && input.current.files !== null) {
-				const file = input.current.files.item(0)
-				if (file !== null) {
-					file.text().then(setText)
-				} else {
-					setText(null)
-				}
+
+	fetch( "https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=doi:10.7910/DVN/5OWRGB/LGD9OQ")
+	.then(response => response.text())
+	.then(data => setText(data))
+
+	const urlSubmit = React.useCallback(
+		async (e: React.FormEvent<HTMLFormElement>) => {
+			e.preventDefault()
+			console.log("handling url", e)
+			if (input.current !== null) {
+				console.log("input is", input.current)
 			}
 		},
 		[]
@@ -106,19 +124,8 @@ function Step1(props: {
 
 	return (
 		<section className="file">
-			<h2>Step 1: select the file</h2>
+			<h2>information about the file</h2>
 			<form>
-				<label>
-					<span>Drag and drop your CSV or TSV, or select a file:</span>
-					<input
-						ref={input}
-						type="file"
-						accept={accept}
-						multiple={false}
-						onChange={onFileChange}
-					/>
-				</label>
-				<br />
 				<label>
 					<span>The first line is a header:</span>
 					<input
@@ -312,6 +319,12 @@ function Validate({}) {
 		</span>
 	)
 }
+
+
+function matchParams({ match }: RouteComponentProps<TParams>) {
+  return <h2>This is a page for product with ID: {match.params.id} </h2>;
+}
+
 
 function getWidth(table: Result): number {
 	if (Array.isArray(table.meta.fields)) {
