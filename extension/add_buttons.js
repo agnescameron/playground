@@ -5,7 +5,8 @@ $('.file-metadata-block').each(function( index ) {
 
 	if(link.text().includes('.tab')){
 		console.log('tab party')
-		$(this).append("<h3><a href='https://underlay.github.io/playground/csv-import/index.html'>R1</a></h3>");
+		const doi = link.attr('href').match('persistentId=.+')[0];
+		$(this).append(`<h3><a href='https://agnescameron.github.io/playground/csv-import/index.html?${doi}'>R1</a></h3>`);
 	}
 
 })
