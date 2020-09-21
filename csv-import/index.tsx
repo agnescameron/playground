@@ -3,13 +3,6 @@ import ReactDOM from "react-dom"
 import papaparse from "papaparse"
 import { canonize, Quad } from "rdf-canonize"
 import jsonld from "jsonld"
-import {
-  BrowserRouter as Router,
-  Route,
-  Link,
-  RouteComponentProps
-} from "react-router-dom";
-import queryString from 'query-string';
 
 import "apg/context.jsonld"
 const contextUrl = "lib/context.jsonld"
@@ -27,7 +20,6 @@ type ArrayResult = string[]
 type Result =
 	| papaparse.ParseResult<ObjectResult>
 	| papaparse.ParseResult<ArrayResult>
-type TParams =  { id: string }
 
 function parse(text: string, headers: boolean): Result {
 	const result = papaparse.parse(text, {
@@ -61,11 +53,6 @@ function Index() {
 	const [uris, setUris] = React.useState(null as string[] | null)
 	// console.log(match.params)
 
-	let url = window.location;
-	const urlObject = new URL(url.toString());
-	const id = urlObject.searchParams.get('id');
-	console.log(id)
-
 	return (
 		<React.Fragment>
 			<Step1 focus={focus} onChange={handleTableChange} />
@@ -94,20 +81,14 @@ function Step1(props: {
 	const input = React.useRef(null as HTMLFormElement | null)
 	const [text, setText] = React.useState(null as string | null)
 
-	fetch( "https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=doi:10.7910/DVN/5OWRGB/LGD9OQ")
+	let url = window.location;
+	const urlObject = new URL(url.toString());
+	const id = urlObject.searchParams.get('persistentId');
+	console.log('id is', id);
+
+	fetch( `https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=${id}`)
 	.then(response => response.text())
 	.then(data => setText(data))
-
-	const urlSubmit = React.useCallback(
-		async (e: React.FormEvent<HTMLFormElement>) => {
-			e.preventDefault()
-			console.log("handling url", e)
-			if (input.current !== null) {
-				console.log("input is", input.current)
-			}
-		},
-		[]
-	)
 
 	const [headers, setHeaders] = React.useState(true)
 	const onIsHeaderChange = React.useCallback(
@@ -319,12 +300,6 @@ function Validate({}) {
 		</span>
 	)
 }
-
-
-function matchParams({ match }: RouteComponentProps<TParams>) {
-  return <h2>This is a page for product with ID: {match.params.id} </h2>;
-}
-
 
 function getWidth(table: Result): number {
 	if (Array.isArray(table.meta.fields)) {
