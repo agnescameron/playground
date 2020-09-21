@@ -1,5 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom"
+const metascraper = require('metascraper')
 import papaparse from "papaparse"
 import { canonize, Quad } from "rdf-canonize"
 import jsonld from "jsonld"
@@ -7,6 +8,7 @@ import jsonld from "jsonld"
 import "apg/context.jsonld"
 const contextUrl = "lib/context.jsonld"
 const contextFile = fetch(contextUrl).then((res) => res.json())
+const request = require('request');
 
 const main = document.querySelector("main")
 
@@ -81,14 +83,24 @@ function Step1(props: {
 	const input = React.useRef(null as HTMLFormElement | null)
 	const [text, setText] = React.useState(null as string | null)
 
+	let defaultId='doi:10.7910/DVN/A4BZU8/9ASKFB'
+
 	let url = window.location;
 	const urlObject = new URL(url.toString());
-	const id = urlObject.searchParams.get('persistentId');
-	console.log('id is', id);
+	const id = urlObject.searchParams.get('persistentId') !== null ?  urlObject.searchParams.get('persistentId') : defaultId;
 
 	fetch( `https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=${id}`)
 	.then(response => response.text())
 	.then(data => setText(data))
+
+
+	const targetUrl = 'https://doi.org/10.7910/DVN/A4BZU8/9ASKFB'
+
+	;(async () => {
+	  const { body: html, url } = await request(targetUrl)
+	  const metadata = await metascraper({ html, url })
+	  console.log(metadata)
+	})()
 
 	const [headers, setHeaders] = React.useState(true)
 	const onIsHeaderChange = React.useCallback(
