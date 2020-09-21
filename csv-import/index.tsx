@@ -94,7 +94,7 @@ function Step1(props: {
 	.then(data => setText(data))
 
 
-	const targetUrl = 'https://doi.org/10.7910/DVN/A4BZU8/9ASKFB'
+	const targetUrl = 'http://doi.org/10.7910/DVN/A4BZU8/9ASKFB'
 
 	;(async () => {
 	  const { body: html, url } = await request(targetUrl)
