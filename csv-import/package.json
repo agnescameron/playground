@@ -21,6 +21,7 @@
 		"jsonld": "^3.1.1",
 		"metascraper": "^5.14.12",
 		"net": "^1.0.2",
+		"ontologies": "^1.0.0",
 		"papaparse": "^5.3.0",
 		"rdf-canonize": "^1.1.0",
 		"react": "^16.13.1",

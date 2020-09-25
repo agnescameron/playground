@@ -6,9 +6,10 @@ import { canonize, Quad } from "rdf-canonize"
 import jsonld from "jsonld"
 
 import "apg/context.jsonld"
+
+const api_token="854d6f7c-04ca-45ec-8ae1-483a2a0930ca"
 const contextUrl = "lib/context.jsonld"
 const contextFile = fetch(contextUrl).then((res) => res.json())
-const request = require('request');
 
 const main = document.querySelector("main")
 
@@ -84,23 +85,38 @@ function Step1(props: {
 	const [text, setText] = React.useState(null as string | null)
 
 	let defaultId='doi:10.7910/DVN/A4BZU8/9ASKFB'
+	let datasetId='doi:10.7910/DVN/A4BZU8'
 
 	let url = window.location;
 	const urlObject = new URL(url.toString());
 	const id = urlObject.searchParams.get('persistentId') !== null ?  urlObject.searchParams.get('persistentId') : defaultId;
 
+
+	//get req to dataverse api for tabular data
 	fetch( `https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=${id}`)
 	.then(response => response.text())
 	.then(data => setText(data))
 
+	//get req to dataset api for dataset-level metadata
+	fetch( `https://dataverse.harvard.edu/api/datasets/:persistentId/versions/:latest?persistentId=${datasetId}`)
+	.then(response => response.text())
+	.then(metadata => console.log(metadata))
 
-	const targetUrl = 'http://doi.org/10.7910/DVN/A4BZU8/9ASKFB'
+	//get req to prov metadata as JSON
+	fetch( `https://dataverse.harvard.edu/api/files/:persistentId/prov-json/?persistentId=${id}`, {
+		  method: 'GET',
+		  headers: new Headers({
+		  	'X-Dataverse-Key': api_token
+		  }),
+		})
+	.then(response => response.json())
+	.then(metadata => console.log(metadata))
 
-	;(async () => {
-	  const { body: html, url } = await request(targetUrl)
-	  const metadata = await metascraper({ html, url })
-	  console.log(metadata)
-	})()
+	//get req to file-level metadata
+	fetch( `https://dataverse.harvard.edu/api/files/:persistentId/metadata?persistentId=${id}`)
+	.then(response => response.text())
+	.then(metadata => console.log(metadata))
+
 
 	const [headers, setHeaders] = React.useState(true)
 	const onIsHeaderChange = React.useCallback(
