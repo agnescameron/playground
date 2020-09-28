@@ -29,7 +29,13 @@ function parse(text: string, headers: boolean): Result {
 		header: headers,
 		skipEmptyLines: "greedy",
 	})
-	return result as Result
+	return result as Result;
+}
+
+function parseProv(text: string): ObjectResult {
+	console.log(text);
+	const result = JSON.parse(text);
+	return result as ObjectResult;
 }
 
 const previewLines = 10
@@ -54,6 +60,7 @@ function Index() {
 
 	const [focus, setFocus] = React.useState(NaN)
 	const [uris, setUris] = React.useState(null as string[] | null)
+	const [prov, setProv] = React.useState(null as string[] | null)
 	// console.log(match.params)
 
 	return (
@@ -69,9 +76,14 @@ function Index() {
 				)}
 			{table !== null &&
 				table.errors.length === 0 &&
+				propertyPattern.test(subjectUri) && (
+					<Step4 table={table} onFocus={setFocus} onChange={setProv}></Step4>
+				)}
+			{table !== null &&
+				table.errors.length === 0 &&
 				propertyPattern.test(subjectUri) &&
 				uris !== null && (
-					<Step4 subjectUri={subjectUri} table={table} uris={uris}></Step4>
+					<Step5 subjectUri={subjectUri} table={table} uris={uris}></Step5>
 				)}
 		</React.Fragment>
 	)
@@ -83,6 +95,7 @@ function Step1(props: {
 }) {
 	const input = React.useRef(null as HTMLFormElement | null)
 	const [text, setText] = React.useState(null as string | null)
+	const [prov, setProv] = React.useState(null as string | null)
 
 	let defaultId='doi:10.7910/DVN/A4BZU8/9ASKFB';
 	let url = window.location;
@@ -99,7 +112,7 @@ function Step1(props: {
 		//get req to dataset api for dataset-level metadata
 		fetch( `https://dataverse.harvard.edu/api/datasets/:persistentId/versions/:latest?persistentId=${datasetId}`)
 		.then(response => response.text())
-		.then(metadata => console.log(metadata))
+		// .then(metadata => console.log(metadata))
 
 		//get req to prov metadata as JSON
 		fetch( `https://dataverse.harvard.edu/api/files/:persistentId/prov-json/?persistentId=${id}`, {
@@ -109,12 +122,12 @@ function Step1(props: {
 			  }),
 			})
 		.then(response => response.json())
-		.then(metadata => console.log(metadata))
+		.then(metadata => metadata.data ? setProv(metadata.data.json) : console.log('no prov data'))
 
 		//get req to file-level metadata
 		fetch( `https://dataverse.harvard.edu/api/files/:persistentId/metadata?persistentId=${id}`)
 		.then(response => response.text())
-		.then(metadata => console.log(metadata))
+		// .then(metadata => console.log(metadata))
 
 	}, [id, datasetId]);
 
@@ -128,6 +141,10 @@ function Step1(props: {
 	const result = React.useMemo(() => {
 		return text === null ? null : parse(text, headers)
 	}, [text, headers])
+
+	const provResult = React.useMemo(() => {
+		return prov === null ? null : parseProv(prov)
+	}, [prov])
 
 	React.useEffect(() => props.onChange(result), [result])
 
@@ -416,7 +433,29 @@ async function makeSchema(subjectUri: string, uris: string[]): Promise<string> {
 	return jsonld.normalize(doc, { algorithm: "URDNA2015" })
 }
 
-function Step4(props: { subjectUri: string; table: Result; uris: string[] }) {
+function Step4(props: {
+	table: Result
+	onFocus: (focus: number) => void
+	onChange: (prov: string[] | null) => void
+}) {
+	const [dataObjectURL, setDataObjectURL] = React.useState<null | string>(null)
+	const [schemaObjectURL, setSchemaObjectURL] = React.useState<null | string>(
+		null
+	)
+
+	const [prov, setProv] = React.useState(null as string[] | null)
+
+	const disabled = dataObjectURL !== null && schemaObjectURL !== null
+	return (
+		<section className="download">
+			<Namespace table={props.table} onSubmit={setProv}></Namespace>
+			<h2>Step 4: validate the PROV schema</h2>
+		</section>
+	)
+}
+
+
+function Step5(props: { subjectUri: string; table: Result; uris: string[] }) {
 	const [dataObjectURL, setDataObjectURL] = React.useState<null | string>(null)
 	const [schemaObjectURL, setSchemaObjectURL] = React.useState<null | string>(
 		null
@@ -454,7 +493,7 @@ function Step4(props: { subjectUri: string; table: Result; uris: string[] }) {
 	const disabled = dataObjectURL !== null && schemaObjectURL !== null
 	return (
 		<section className="download">
-			<h2>Step 4: download the files</h2>
+			<h2>Step 5: download the files</h2>
 			<div>
 				<button disabled={disabled} onClick={handleClick}>
 					Generate files
