@@ -84,39 +84,39 @@ function Step1(props: {
 	const input = React.useRef(null as HTMLFormElement | null)
 	const [text, setText] = React.useState(null as string | null)
 
-	let defaultId='doi:10.7910/DVN/A4BZU8/9ASKFB'
-	let datasetId='doi:10.7910/DVN/A4BZU8'
-
+	let defaultId='doi:10.7910/DVN/A4BZU8/9ASKFB';
 	let url = window.location;
+
 	const urlObject = new URL(url.toString());
 	const id = urlObject.searchParams.get('persistentId') !== null ?  urlObject.searchParams.get('persistentId') : defaultId;
+	const datasetId = id !== null ? id.slice(0, -7) : null;
 
+	React.useEffect(() => {
+		fetch(`https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=${id}`)
+		.then(response => response.text())
+		.then(data => setText(data))
 
-	//get req to dataverse api for tabular data
-	fetch( `https://dataverse.harvard.edu/api/access/datafile/:persistentId/?persistentId=${id}`)
-	.then(response => response.text())
-	.then(data => setText(data))
+		//get req to dataset api for dataset-level metadata
+		fetch( `https://dataverse.harvard.edu/api/datasets/:persistentId/versions/:latest?persistentId=${datasetId}`)
+		.then(response => response.text())
+		.then(metadata => console.log(metadata))
 
-	//get req to dataset api for dataset-level metadata
-	fetch( `https://dataverse.harvard.edu/api/datasets/:persistentId/versions/:latest?persistentId=${datasetId}`)
-	.then(response => response.text())
-	.then(metadata => console.log(metadata))
+		//get req to prov metadata as JSON
+		fetch( `https://dataverse.harvard.edu/api/files/:persistentId/prov-json/?persistentId=${id}`, {
+			  method: 'GET',
+			  headers: new Headers({
+			  	'X-Dataverse-Key': api_token
+			  }),
+			})
+		.then(response => response.json())
+		.then(metadata => console.log(metadata))
 
-	//get req to prov metadata as JSON
-	fetch( `https://dataverse.harvard.edu/api/files/:persistentId/prov-json/?persistentId=${id}`, {
-		  method: 'GET',
-		  headers: new Headers({
-		  	'X-Dataverse-Key': api_token
-		  }),
-		})
-	.then(response => response.json())
-	.then(metadata => console.log(metadata))
+		//get req to file-level metadata
+		fetch( `https://dataverse.harvard.edu/api/files/:persistentId/metadata?persistentId=${id}`)
+		.then(response => response.text())
+		.then(metadata => console.log(metadata))
 
-	//get req to file-level metadata
-	fetch( `https://dataverse.harvard.edu/api/files/:persistentId/metadata?persistentId=${id}`)
-	.then(response => response.text())
-	.then(metadata => console.log(metadata))
-
+	}, [id, datasetId]);
 
 	const [headers, setHeaders] = React.useState(true)
 	const onIsHeaderChange = React.useCallback(
